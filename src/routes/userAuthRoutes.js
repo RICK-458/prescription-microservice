@@ -1,11 +1,11 @@
 import express from "express"
 const router =express.Router();
-import { registerUser } from "../controller/userController.js";
+import { registerUser, getMyProfile } from "../controller/userController.js";
 import { userauthenticate } from "../middlewares/authenticate.js";
 
 
 
-router.get('/me',userauthenticate, (req,res) => res.json(req.user))
+router.get('/me', userauthenticate, getMyProfile)
 router.post('/register',userauthenticate,registerUser)
 
 

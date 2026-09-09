@@ -1,5 +1,11 @@
 import db from "../config/db.js";
-import { users } from "../../drizzle/schema.js";
+import {
+  users,
+  patientProfiles,
+  doctorProfiles,
+  pharmacistProfiles,
+  pharmacies,
+} from "../../drizzle/schema.js";
 import { and, eq, ne } from "drizzle-orm";
 
 // Columns we hand back after the profile is filled in.
@@ -133,6 +139,91 @@ export const registerUser = async (req, res, next) => {
         message: "That phone number is already registered to another user.",
       });
     }
+    next(error);
+  }
+};
+
+
+// ─── GET /api/v1/user/me ──────────────────────────────────────────────────────
+/**
+ * The signed-in user with whichever role profile they hold, so the profile
+ * screens can render real data instead of placeholders. One request rather
+ * than three role-specific ones — the client does not have to know the role
+ * before asking.
+ *
+ * `role` is null for an account that signed up but never completed a role
+ * form; the screens show an empty state rather than someone else's details.
+ */
+export const getMyProfile = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    const [account] = await db
+      .select(userColumns)
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!account) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const [patient] = await db
+      .select()
+      .from(patientProfiles)
+      .where(eq(patientProfiles.userId, userId))
+      .limit(1);
+
+    if (patient) {
+      return res
+        .status(200)
+        .json({ success: true, user: account, role: "patient", profile: patient });
+    }
+
+    const [doctor] = await db
+      .select()
+      .from(doctorProfiles)
+      .where(eq(doctorProfiles.userId, userId))
+      .limit(1);
+
+    if (doctor) {
+      return res
+        .status(200)
+        .json({ success: true, user: account, role: "doctor", profile: doctor });
+    }
+
+    const [pharmacist] = await db
+      .select()
+      .from(pharmacistProfiles)
+      .where(eq(pharmacistProfiles.userId, userId))
+      .limit(1);
+
+    if (pharmacist) {
+      // The dispensary they work at is part of their profile as far as the
+      // screen is concerned, so send it along rather than making the client
+      // fetch it separately.
+      let pharmacy = null;
+      if (pharmacist.pharmacyId) {
+        [pharmacy] = await db
+          .select()
+          .from(pharmacies)
+          .where(eq(pharmacies.id, pharmacist.pharmacyId))
+          .limit(1);
+      }
+
+      return res.status(200).json({
+        success: true,
+        user: account,
+        role: "pharmacist",
+        profile: pharmacist,
+        pharmacy: pharmacy ?? null,
+      });
+    }
+
+    return res
+      .status(200)
+      .json({ success: true, user: account, role: null, profile: null });
+  } catch (error) {
     next(error);
   }
 };
