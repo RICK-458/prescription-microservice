@@ -1,6 +1,6 @@
 import db from "../config/db.js";
 import { doctorProfiles } from "../../drizzle/schema.js";
-import { eq, and } from "drizzle-orm";
+import { eq, and, ne } from "drizzle-orm";
 
 export const addDoctor = async (req, res, next) => {
   try {
@@ -33,24 +33,33 @@ export const addDoctor = async (req, res, next) => {
       .where(eq(doctorProfiles.userId, userId))
       .limit(1);
 
-    if (existingDoctor) {
-      return res.status(409).json({
-        success: false,
-        message: "Doctor is already registered",
-      });
-    }
-
-    // Check whether license number is already used
-    const [existingLicense] = await db
+    // The licence is UNIQUE, so it may only be claimed by this user's own row.
+    const [licenceHolder] = await db
       .select()
       .from(doctorProfiles)
       .where(eq(doctorProfiles.licenseNo, licenseNo))
       .limit(1);
 
-    if (existingLicense) {
+    if (licenceHolder && licenceHolder.userId !== userId) {
       return res.status(409).json({
         success: false,
-        message: "License number is already registered",
+        message: "License number is already registered to someone else",
+      });
+    }
+
+    // Re-submitting updates rather than 409ing. A hard failure here stranded
+    // anyone retrying after a partial sign-up.
+    if (existingDoctor) {
+      const [updated] = await db
+        .update(doctorProfiles)
+        .set({ specialization, qualification, licenseNo, experienceYears, consultationModes, consultationFee, name })
+        .where(eq(doctorProfiles.userId, userId))
+        .returning();
+
+      return res.status(200).json({
+        success: true,
+        message: "Doctor profile updated",
+        doctor: updated,
       });
     }
 

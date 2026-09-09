@@ -41,24 +41,33 @@ export const createPharmacist = async (req, res, next) => {
       .where(eq(pharmacistProfiles.userId, userId))
       .limit(1);
 
-    if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        message: "You are already registered as a pharmacist",
-      });
-    }
-
-    // Check if license number is already used
-    const [existingLicense] = await db
+    // The licence is UNIQUE, so it may only be claimed by this user's own row.
+    const [licenceHolder] = await db
       .select()
       .from(pharmacistProfiles)
       .where(eq(pharmacistProfiles.licenseNo, licenseNo))
       .limit(1);
 
-    if (existingLicense) {
+    if (licenceHolder && licenceHolder.userId !== userId) {
       return res.status(409).json({
         success: false,
-        message: "Pharmacist license already registered",
+        message: "Pharmacist license already registered to someone else",
+      });
+    }
+
+    // Re-submitting updates rather than 409ing, and lets a pharmacist move to
+    // a different pharmacy without an admin.
+    if (existingUser) {
+      const [updated] = await db
+        .update(pharmacistProfiles)
+        .set({ pharmacyId, licenseNo, name: name ?? req.user.name })
+        .where(eq(pharmacistProfiles.userId, userId))
+        .returning();
+
+      return res.status(200).json({
+        success: true,
+        message: "Pharmacist profile updated",
+        pharmacist: updated,
       });
     }
 
