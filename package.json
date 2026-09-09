@@ -1,0 +1,41 @@
+{
+  "name": "mediquick-api",
+  "version": "1.0.0",
+  "description": "MediQuick core API — users, profiles, appointments, prescriptions, pharmacy orders and notifications.",
+  "homepage": "https://github.com/abhiilekhborah/SIH2026#readme",
+  "bugs": {
+    "url": "https://github.com/abhiilekhborah/SIH2026/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abhiilekhborah/SIH2026.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "check:db": "node src/db/check.js",
+    "db:apply": "node src/db/apply.js"
+  },
+  "dependencies": {
+    "@clerk/express": "^2.1.64",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "drizzle-kit": "^0.31.10",
+    "drizzle-orm": "^0.45.2",
+    "express": "^5.2.1",
+    "helmet": "^8.3.0",
+    "morgan": "^1.12.0",
+    "pg": "^8.23.0",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
