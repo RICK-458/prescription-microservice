@@ -21,7 +21,11 @@ Set two environment variables in the dashboard:
 | Variable | Notes |
 |---|---|
 | `DATABASE_URL` | **Session pooler** URI from Supabase -> Connect |
-| `CLERK_SECRET_KEY` | From the Clerk dashboard |
+| `CLERK_PUBLISHABLE_KEY` | `pk_...` — required, same key the app uses |
+| `CLERK_SECRET_KEY` | `sk_...` from the Clerk dashboard |
+
+`clerkMiddleware()` needs **both** Clerk keys. With only the secret, every
+request returns 500 `Publishable key is missing` before reaching a route.
 
 **Use the pooler string, not the direct one.** `db.<ref>.supabase.co` resolves to
 IPv6 only and Render has no outbound IPv6, so the direct URL deploys green and

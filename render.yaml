@@ -24,5 +24,10 @@ services:
       # Set in the Render dashboard. Never committed.
       - key: DATABASE_URL
         sync: false
+      # clerkMiddleware() needs BOTH Clerk keys. Without the publishable key
+      # every request fails with 500 "Publishable key is missing" before it
+      # reaches a route.
+      - key: CLERK_PUBLISHABLE_KEY
+        sync: false
       - key: CLERK_SECRET_KEY
         sync: false
