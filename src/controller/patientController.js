@@ -2,7 +2,7 @@ import db from "../config/db.js";
 import { patientProfiles } from "../../drizzle/schema.js";
 import { eq } from "drizzle-orm";
 
-export const addPatient = async (req, res) => {
+export const addPatient = async (req, res, next) => {
   try {
     // Get user ID from authentication middleware
     const userId = req.user.id;
@@ -86,13 +86,8 @@ export const addPatient = async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
-
-    return res.status(500).json({
-      success: false,
-      // Name the real cause. The screen shows this straight to the user, and
-      // a bare "failed" is what made the silent-failure bug so hard to find.
-      message: error?.message ?? "Failed to create patient profile",
-    });
+    // errorHandler unwraps drizzle's "Failed query" and turns constraint
+    // violations into something the user can act on.
+    return next(error);
   }
 };
