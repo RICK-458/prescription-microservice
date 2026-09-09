@@ -29,10 +29,33 @@ export const addPatient = async (req, res) => {
       .where(eq(patientProfiles.userId, userId))
       .limit(1);
 
+    // Re-submitting the registration form updates the profile rather than
+    // failing. A 409 here used to strand anyone who retried after a partial
+    // sign-up, leaving them with a users row and no patient profile.
     if (existingPatient) {
-      return res.status(409).json({
-        success: false,
-        message: "Patient profile already exists",
+      const [updated] = await db
+        .update(patientProfiles)
+        .set({
+          bloodGroup,
+          emergencyContactName,
+          emergencyContactPhone,
+          allergies: allergies || [],
+          chronicConditions: chronicConditions || [],
+          abhaId,
+          address,
+          villageTown,
+          district,
+          state,
+          pincode,
+          name,
+        })
+        .where(eq(patientProfiles.userId, userId))
+        .returning();
+
+      return res.status(200).json({
+        success: true,
+        message: "Patient profile updated",
+        patient: updated,
       });
     }
 
@@ -67,7 +90,9 @@ export const addPatient = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "Failed to create patient profile",
+      // Name the real cause. The screen shows this straight to the user, and
+      // a bare "failed" is what made the silent-failure bug so hard to find.
+      message: error?.message ?? "Failed to create patient profile",
     });
   }
 };
